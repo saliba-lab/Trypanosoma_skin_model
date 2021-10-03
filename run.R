@@ -11,96 +11,95 @@ library(readxl)
 library(ggpubr)
 library(factoextra)
                   
-              setwd("/home/hiri/Desktop/PhD_Projects/2020-09-21-Christian")
-              dir.create("output")
+setwd("/home/hiri/Desktop/PhD_Projects/2020-09-21-Christian")
+dir.create("output")
                           
-              ## Importing the count table
-              temp <- list.files("./temp", pattern = "out.txt")
-              col <- gsub("_S.*", "", gsub("Aligned.out.txt", "", temp))
-              time <- gsub("_.*","",col)
-              nCell <- gsub("_.*","",gsub(".*d_","",gsub(".*h_","",col)))
+## Importing the count table
+temp <- list.files("./temp", pattern = "out.txt")
+col <- gsub("_S.*", "", gsub("Aligned.out.txt", "", temp))
+time <- gsub("_.*","",col)
+nCell <- gsub("_.*","",gsub(".*d_","",gsub(".*h_","",col)))
                       
-              filenames <- list.files(path = "./temp", full.names = TRUE)
-              datalist <- lapply(filenames, function(x){read.table(file = x, header = TRUE, row.names = 1, sep = "\t", stringsAsFactors = FALSE)[,6]})
-              unique_table <- sapply(datalist, cbind)
-              colnames(unique_table) <- col
-              rownames(unique_table) <- rownames(read.table("./temp/0h_1_A3_1Aligned.out.txt", row.names = 1, header = TRUE))
+filenames <- list.files(path = "./temp", full.names = TRUE)
+datalist <- lapply(filenames, function(x){read.table(file = x, header = TRUE, row.names = 1, sep = "\t", stringsAsFactors = FALSE)[,6]})
+unique_table <- sapply(datalist, cbind)
+colnames(unique_table) <- col
+rownames(unique_table) <- rownames(read.table("./temp/0h_1_A3_1Aligned.out.txt", row.names = 1, header = TRUE))
               
-              write.csv(unique_table, file = "raw_counts.csv")
+write.csv(unique_table, file = "raw_counts.csv")
               
-              colData <- data.frame(col, time = time, nCell = nCell)
-              
-              
-              #############################################
-              #############################################
-              #############################################
-              ## Adding the number of detected genes and library size
-              colData$n.gene <- colSums(unique_table > 5)
-              colData$lib.size <- colSums(unique_table)
-              write.csv(colData, file="colData.csv")
+colData <- data.frame(col, time = time, nCell = nCell)
               
               
-              colData50 <- colData[colData$nCell == 50,]
-              colData1 <- colData[colData$nCell == 1,]
-              unique_table1 <- unique_table[,colData1$col]
-              unique_table50 <- unique_table[,colData50$col]          
+#############################################
+#############################################
+############################################
+## Adding the number of detected genes and library size
+colData$n.gene <- colSums(unique_table > 5)
+colData$lib.size <- colSums(unique_table)
+write.csv(colData, file="colData.csv")
               
               
-              colData1$time <- factor(colData1$time,levels = c("0h", "4h", "12h", "24h", "7d"))
+colData50 <- colData[colData$nCell == 50,]
+colData1 <- colData[colData$nCell == 1,]
+unique_table1 <- unique_table[,colData1$col]
+unique_table50 <- unique_table[,colData50$col]          
               
-              p1 <- ggplot(data = colData1, aes(x = time, y = n.gene, color = time)) +
-                geom_jitter() + 
-                geom_violin(alpha = 0) +
-                theme_classic() +
-                ylab("Number of detected genes") +
-                xlab("") +
-                theme(legend.position = "none")
               
-              p2 <- ggplot(data = colData1, aes(x = time, y = lib.size, color = time)) +
-                geom_jitter() + 
-                geom_violin(alpha = 0) +
-                theme_classic() +
-                ylab("library size") +
-                xlab("") +
-                theme(legend.position = "none")  +
-                scale_y_continuous(trans='log10')
+colData1$time <- factor(colData1$time,levels = c("0h", "4h", "12h", "24h", "7d"))
               
-              Fig1c <- grid.arrange(p1, p2, ncol=1)
-              ggsave("./output/gene_lib_1.eps", Fig1c, width = 6, height = 5)
+p1 <- ggplot(data = colData1, aes(x = time, y = n.gene, color = time)) +
+   geom_jitter() + 
+   geom_violin(alpha = 0) +
+   theme_classic() +
+   ylab("Number of detected genes") +
+   xlab("") +
+   theme(legend.position = "none")
+              
+p2 <- ggplot(data = colData1, aes(x = time, y = lib.size, color = time)) +
+   geom_jitter() + 
+   geom_violin(alpha = 0) +
+   theme_classic() +
+   ylab("library size") +
+   xlab("") +
+   theme(legend.position = "none")  +
+   scale_y_continuous(trans='log10')
+              
+p <- grid.arrange(p1, p2, ncol=1)
+ggsave("./output/gene_lib_1.eps", Fig1c, width = 6, height = 5)
                           
-              ggplot(data = colData1, aes(x = lib.size, y=n.gene, color = time)) +
-                geom_jitter() +
-                theme_classic() +
-                theme() +
-                ylab("Number of detected genes") +
-                xlab("Library Size") +
-                geom_hline(yintercept = 200) +
-                geom_hline(yintercept = 1000) +
-                geom_vline(xintercept = 200000) +
-                geom_vline(xintercept = 2000000)
+ggplot(data = colData1, aes(x = lib.size, y=n.gene, color = time)) +
+   geom_jitter() +
+   theme_classic() +
+   theme() +
+   ylab("Number of detected genes") +
+   xlab("Library Size") +
+   geom_hline(yintercept = 200) +
+   geom_hline(yintercept = 1000) +
+   geom_vline(xintercept = 200000) +
+   geom_vline(xintercept = 2000000)
               
-                ggsave("./output/gene_lib_cor_1.eps", width = 5, height = 5)
+ggsave("./output/gene_lib_cor_1.eps", width = 5, height = 5)
                           
-              ## Fig1c
-              p1 <- ggplot(data = colData50, aes(x = time, y = n.gene, color = time)) +
-                geom_jitter() + 
-                geom_violin(alpha = 0) +
-                theme_classic() +
-                ylab("Number of detected genes") +
-                xlab("") +
-                theme(legend.position = "none")
+p1 <- ggplot(data = colData50, aes(x = time, y = n.gene, color = time)) +
+   geom_jitter() + 
+   geom_violin(alpha = 0) +
+   theme_classic() +
+   ylab("Number of detected genes") +
+   xlab("") +
+   theme(legend.position = "none")
               
-              p2 <- ggplot(data = colData50, aes(x = time, y = lib.size, color = time)) +
-                geom_jitter() + 
-                geom_violin(alpha = 0) +
-                theme_classic() +
-                ylab("library size") +
-                xlab("") +
-                theme(legend.position = "none")  +
-                scale_y_continuous(trans='log10')
+p2 <- ggplot(data = colData50, aes(x = time, y = lib.size, color = time)) +
+   geom_jitter() + 
+   geom_violin(alpha = 0) +
+   theme_classic() +
+   ylab("library size") +
+   xlab("") +
+   theme(legend.position = "none")  +
+   scale_y_continuous(trans='log10')
               
-              Fig1c <- grid.arrange(p1, p2, ncol=1)
-              ggsave("./output/gene_lib_50.png", Fig1c, width = 6, height = 5)
+Fig1c <- grid.arrange(p1, p2, ncol=1)
+ggsave("./output/gene_lib_50.png", Fig1c, width = 6, height = 5)
               
               ## sFig2b
               ggplot(data = colData50, aes(x = lib.size, y=n.gene, color = time)) +
