@@ -211,319 +211,318 @@ ggplot(df, aes(x = PC1, y = PC2, color = time)) +
 ggsave("./output/pca_7d_outlier_removed.png", width = 5, height = 5)
 write.csv(df, file = "coordinate_d7_outlier_removed.csv")
               
+#############################################################
+#################### DE 7d vs 24h ###########################
+#############################################################
+colData_pair <- colData_filt[colData_filt$time == "7d" | colData_filt$time == "24h",]
+rownames(colData_pair) <- colData_pair$col
+colData_pair <- colData_pair[!rownames(colData_pair) %in% outlier, ]
+tab <- single_table[,rownames(colData_pair)]
+dds <- DESeqDataSetFromMatrix(countData = tab,
+       colData = colData_pair,
+       design= ~time)
+dds <- DESeq(dds)
+resultsNames(dds)
+res_7d_vs_24h <- results(dds, name = "time_7d_vs_24h")
+res_7d_vs_24h <- data.frame(res_7d_vs_24h)
+res_7d_vs_24h <- res_7d_vs_24h[complete.cases(res_7d_vs_24h),]
+write.csv(res_7d_vs_24h, file = "res_7d_vs_24h.csv")
               
-              #############################################################
-              #################### DE 7d vs 24h ###########################
-              #############################################################
-              colData_pair <- colData_filt[colData_filt$time == "7d" | colData_filt$time == "24h",]
-              rownames(colData_pair) <- colData_pair$col
-              colData_pair <- colData_pair[!rownames(colData_pair) %in% outlier, ]
-              tab <- single_table[,rownames(colData_pair)]
-              dds <- DESeqDataSetFromMatrix(countData = tab,
-                                            colData = colData_pair,
-                                            design= ~time)
-                dds <- DESeq(dds)
-              resultsNames(dds)
-              res_7d_vs_24h <- results(dds, name = "time_7d_vs_24h")
-              res_7d_vs_24h <- data.frame(res_7d_vs_24h)
-              res_7d_vs_24h <- res_7d_vs_24h[complete.cases(res_7d_vs_24h),]
-              write.csv(res_7d_vs_24h, file = "res_7d_vs_24h.csv")
+res_7d_vs_24h_hm <- res_7d_vs_24h[res_7d_vs_24h$padj < 0.01,]
+positive <- res_7d_vs_24h_hm[res_7d_vs_24h_hm$log2FoldChange > 2,]
+negative <- res_7d_vs_24h_hm[res_7d_vs_24h_hm$log2FoldChange < -2,]
               
-              res_7d_vs_24h_hm <- res_7d_vs_24h[res_7d_vs_24h$padj < 0.01,]
-              positive <- res_7d_vs_24h_hm[res_7d_vs_24h_hm$log2FoldChange > 2,]
-              negative <- res_7d_vs_24h_hm[res_7d_vs_24h_hm$log2FoldChange < -2,]
-              
-              hm_gene <- c(rownames(positive), rownames(negative))
-              norm <- nSingle[hm_gene, rownames(colData_pair)]
-              scaled <- t(apply(norm, 1, scale))
-              colnames(scaled) <- colnames(norm)
-              #group <- factor(colData_DE$time)
-              #ha <- HeatmapAnnotation(df = data.frame(group), col = list(group = c("0h" = "#619cff", "12h" = "#00BA38", "24h" = "#F8766D", "4h" = "#6a3d9a")))
-              pdf("./output/heatmap_res_7d_vs_24h.pdf", width = 14, height = 10)
-              p <- Heatmap(scaled, cluster_columns = FALSE, cluster_rows = FALSE, col = colorRamp2(seq(-2,2,0.1), viridis(41)), row_names_gp = gpar(fontsize = 2), show_column_names = TRUE)
-              print(p)
-              dev.off()
-              
-              
-              #############################################################
-              #################### DE 7d vs 0h ###########################
-              #############################################################
-              colData_pair <- colData_filt[colData_filt$time == "7d" | colData_filt$time == "0h",]
-              rownames(colData_pair) <- colData_pair$col
-              colData_pair <- colData_pair[!rownames(colData_pair) %in% outlier, ]
-              tab <- single_table[,rownames(colData_pair)]
-              dds <- DESeqDataSetFromMatrix(countData = tab,
-                                            colData = colData_pair,
-                                            design= ~time)
-              dds <- DESeq(dds)
-              resultsNames(dds)
-              res_7d_vs_0h <- results(dds, name = "time_7d_vs_0h")
-              res_7d_vs_0h <- data.frame(res_7d_vs_0h)
-              res_7d_vs_0h <- res_7d_vs_0h[complete.cases(res_7d_vs_0h),]
-              write.csv(res_7d_vs_0h, file = "res_7d_vs_0h.csv")
-              
-              res_7d_vs_0h_hm <- res_7d_vs_0h[res_7d_vs_0h$padj < 0.01,]
-              positive <- res_7d_vs_0h_hm[res_7d_vs_0h_hm$log2FoldChange > 2,]
-              negative <- res_7d_vs_0h_hm[res_7d_vs_0h_hm$log2FoldChange < -2,]
-              
-              hm_gene <- c(rownames(positive), rownames(negative))
-              norm <- nSingle[hm_gene, rownames(colData_pair)]
-              scaled <- t(apply(norm, 1, scale))
-              colnames(scaled) <- colnames(norm)
-              #group <- factor(colData_DE$time)
-              #ha <- HeatmapAnnotation(df = data.frame(group), col = list(group = c("0h" = "#619cff", "12h" = "#00BA38", "0h" = "#F8766D", "4h" = "#6a3d9a")))
-              pdf("./output/heatmap_res_7d_vs_0h.pdf", width = 14, height = 10)
-              p <- Heatmap(scaled, cluster_columns = FALSE, cluster_rows = FALSE, col = colorRamp2(seq(-2,2,0.1), viridis(41)), row_names_gp = gpar(fontsize = 2), show_column_names = TRUE)
-              print(p)
-              dev.off()
+hm_gene <- c(rownames(positive), rownames(negative))
+norm <- nSingle[hm_gene, rownames(colData_pair)]
+scaled <- t(apply(norm, 1, scale))
+colnames(scaled) <- colnames(norm)
+group <- factor(colData_DE$time)
+ha <- HeatmapAnnotation(df = data.frame(group), col = list(group = c("0h" = "#619cff", "12h" = "#00BA38", "24h" = "#F8766D", "4h" = "#6a3d9a")))
+pdf("./output/heatmap_res_7d_vs_24h.pdf", width = 14, height = 10)
+p <- Heatmap(scaled, cluster_columns = FALSE, cluster_rows = FALSE, col = colorRamp2(seq(-2,2,0.1), viridis(41)), row_names_gp = gpar(fontsize = 2), show_column_names = TRUE)
+print(p)
+dev.off()
               
               
+#############################################################
+#################### DE 7d vs 0h ###########################
+#############################################################
+colData_pair <- colData_filt[colData_filt$time == "7d" | colData_filt$time == "0h",]
+rownames(colData_pair) <- colData_pair$col
+colData_pair <- colData_pair[!rownames(colData_pair) %in% outlier, ]
+tab <- single_table[,rownames(colData_pair)]
+dds <- DESeqDataSetFromMatrix(countData = tab,
+       colData = colData_pair,
+       design= ~time)
+dds <- DESeq(dds)
+resultsNames(dds)
+res_7d_vs_0h <- results(dds, name = "time_7d_vs_0h")
+res_7d_vs_0h <- data.frame(res_7d_vs_0h)
+res_7d_vs_0h <- res_7d_vs_0h[complete.cases(res_7d_vs_0h),]
+write.csv(res_7d_vs_0h, file = "res_7d_vs_0h.csv")
               
-              #############################################################
-              #############################################################
-              #############################################################
+res_7d_vs_0h_hm <- res_7d_vs_0h[res_7d_vs_0h$padj < 0.01,]
+positive <- res_7d_vs_0h_hm[res_7d_vs_0h_hm$log2FoldChange > 2,]
+negative <- res_7d_vs_0h_hm[res_7d_vs_0h_hm$log2FoldChange < -2,]
               
-             ### performing DE analysis
-              colData_DE <- colData_filt#[!colData_filt$time == "7d",]
-              rownames(colData_DE) <- colData_DE$col
-              colData_DE <- colData_DE[!rownames(colData_DE) %in% outlier, ]
+hm_gene <- c(rownames(positive), rownames(negative))
+norm <- nSingle[hm_gene, rownames(colData_pair)]
+scaled <- t(apply(norm, 1, scale))
+colnames(scaled) <- colnames(norm)
+group <- factor(colData_DE$time)
+ha <- HeatmapAnnotation(df = data.frame(group), col = list(group = c("0h" = "#619cff", "12h" = "#00BA38", "0h" = "#F8766D", "4h" = "#6a3d9a")))
+pdf("./output/heatmap_res_7d_vs_0h.pdf", width = 14, height = 10)
+p <- Heatmap(scaled, cluster_columns = FALSE, cluster_rows = FALSE, col = colorRamp2(seq(-2,2,0.1), viridis(41)), row_names_gp = gpar(fontsize = 2), show_column_names = TRUE)
+print(p)
+dev.off()
               
-              h0 <- factor(gsub("7d","rest",gsub("4h","rest",gsub("12h","rest",gsub("24h", "rest", gsub("0h", "aim", colData_DE$time))))))
-              h4 <- factor(gsub("7d","rest",gsub("4h","aim",gsub("12h","rest",gsub("24h", "rest", gsub("0h", "rest", colData_DE$time))))))
-              h12 <- factor(gsub("7d","rest",gsub("4h","rest",gsub("12h","aim",gsub("24h", "rest", gsub("0h", "rest", colData_DE$time))))))
-              h24 <- factor(gsub("7d","rest",gsub("4h","rest",gsub("12h","rest",gsub("24h", "aim", gsub("0h", "rest", colData_DE$time))))))
-              d7 <- factor(gsub("7d","aim",gsub("4h","rest",gsub("12h","rest",gsub("24h", "rest", gsub("0h", "rest", colData_DE$time))))))
-              colData_DE <- data.frame(colData_DE, h0, h4, h12, h24, d7)
-            #  cts <- single_table[,as.character(colData_DE$col) ]
-              #cts <- cts[rowSums(cts) > 0, ]
-              #cts <- cts[rowSums(cts > 0) > 5, ]
               
-            #  col_data <- data.frame(colData_DE, condition = factor(condition))
-            #  rownames(col_data) <- col_data$col
-            #  dds <- DESeqDataSetFromMatrix(countData = cts,
-            #                                colData = col_data,
-            #                                design= ~condition)
-            #  resultsNames(dds) 
-              #h4 <- as.character(colData_DE[colData_DE$time == "4h", ]$col)
-              #h0 <- as.character(colData_DE[colData_DE$time == "0h", ]$col)
-              #h12 <- as.character(colData_DE[colData_DE$time == "12h", ]$col)
-              #h24 <- as.character(colData_DE[colData_DE$time == "24h", ]$col)
-              #ht_order <- c(h0, h4, h12, h24)  
-              single_table <- single_table[,rownames(colData_DE)]
-              #condition <- factor(c(rep("early", 71), rep("late", 49)))
-              condition <- factor(colData_DE$time)
+              
+#############################################################
+#############################################################
+############################################################
+             
+## performing DE analysis
+colData_DE <- colData_filt#[!colData_filt$time == "7d",]
+rownames(colData_DE) <- colData_DE$col
+colData_DE <- colData_DE[!rownames(colData_DE) %in% outlier, ]
+              
+h0 <- factor(gsub("7d","rest",gsub("4h","rest",gsub("12h","rest",gsub("24h", "rest", gsub("0h", "aim", colData_DE$time))))))
+h4 <- factor(gsub("7d","rest",gsub("4h","aim",gsub("12h","rest",gsub("24h", "rest", gsub("0h", "rest", colData_DE$time))))))
+h12 <- factor(gsub("7d","rest",gsub("4h","rest",gsub("12h","aim",gsub("24h", "rest", gsub("0h", "rest", colData_DE$time))))))
+h24 <- factor(gsub("7d","rest",gsub("4h","rest",gsub("12h","rest",gsub("24h", "aim", gsub("0h", "rest", colData_DE$time))))))
+d7 <- factor(gsub("7d","aim",gsub("4h","rest",gsub("12h","rest",gsub("24h", "rest", gsub("0h", "rest", colData_DE$time))))))
+colData_DE <- data.frame(colData_DE, h0, h4, h12, h24, d7)
+#  cts <- single_table[,as.character(colData_DE$col) ]
+#cts <- cts[rowSums(cts) > 0, ]
+#cts <- cts[rowSums(cts > 0) > 5, ]
+              
+#  col_data <- data.frame(colData_DE, condition = factor(condition))
+#  rownames(col_data) <- col_data$col
+#  dds <- DESeqDataSetFromMatrix(countData = cts,
+#          colData = col_data,
+#          design= ~condition)
+#  resultsNames(dds) 
+#h4 <- as.character(colData_DE[colData_DE$time == "4h", ]$col)
+#h0 <- as.character(colData_DE[colData_DE$time == "0h", ]$col)
+#h12 <- as.character(colData_DE[colData_DE$time == "12h", ]$col)
+#h24 <- as.character(colData_DE[colData_DE$time == "24h", ]$col)
+#ht_order <- c(h0, h4, h12, h24)  
+single_table <- single_table[,rownames(colData_DE)]
+#condition <- factor(c(rep("early", 71), rep("late", 49)))
+condition <- factor(colData_DE$time)
             
               
-              library(scde) 
-            names(condition) <- as.character(colnames(single_table)) 
-            sg <- condition
-            cd <-   single_table
-           o.ifm <- scde.error.models(counts = cd, groups = sg, n.cores = 8, threshold.segmentation = TRUE, save.crossfit.plots = FALSE, save.model.plots = FALSE, verbose = 1)
-           o.prior <- scde.expression.prior(models = o.ifm, counts = cd, length.out = 400, show.plot = FALSE)
+library(scde) 
+names(condition) <- as.character(colnames(single_table)) 
+sg <- condition
+cd <-   single_table
+o.ifm <- scde.error.models(counts = cd, groups = sg, n.cores = 8, threshold.segmentation = TRUE, save.crossfit.plots = FALSE, save.model.plots = FALSE, verbose = 1)
+o.prior <- scde.expression.prior(models = o.ifm, counts = cd, length.out = 400, show.plot = FALSE)
             
             
-            ### 0h
-          #  group <- factor(colData_DE$h0)
-          #  names(group) <- rownames(o.ifm)
-          #  ediff <- scde.expression.difference(o.ifm, cd, o.prior, groups  =  group, n.randomizations  =  100, n.cores  =  8, verbose  =  1)
-          #  de_0h <- ediff[order(ediff$Z, decreasing  =  TRUE), ]
-          #  write.csv(de_0h, file = "de_0h.csv")
+### 0h
+#  group <- factor(colData_DE$h0)
+#  names(group) <- rownames(o.ifm)
+#  ediff <- scde.expression.difference(o.ifm, cd, o.prior, groups  =  group, n.randomizations  =  100, n.cores  =  8, verbose  =  1)
+#  de_0h <- ediff[order(ediff$Z, decreasing  =  TRUE), ]
+#  write.csv(de_0h, file = "de_0h.csv")
             
             
-            ### 4h
-          #  group <- factor(colData_DE$h4)
-          #  names(group) <- rownames(o.ifm)
-          #  ediff <- scde.expression.difference(o.ifm, cd, o.prior, groups  =  group, n.randomizations  =  100, n.cores  =  8, verbose  =  1)
-          #  de_4h <- ediff[order(ediff$Z, decreasing  =  TRUE), ]
-          #  write.csv(de_4h, file = "de_4h.csv")
+### 4h
+#  group <- factor(colData_DE$h4)
+#  names(group) <- rownames(o.ifm)
+#  ediff <- scde.expression.difference(o.ifm, cd, o.prior, groups  =  group, n.randomizations  =  100, n.cores  =  8, verbose  =  1)
+#  de_4h <- ediff[order(ediff$Z, decreasing  =  TRUE), ]
+#  write.csv(de_4h, file = "de_4h.csv")
             
             
-            ### 12h
-          #  group <- factor(colData_DE$h12)
-          #  names(group) <- rownames(o.ifm)
-          #  ediff <- scde.expression.difference(o.ifm, cd, o.prior, groups  =  group, n.randomizations  =  100, n.cores  =  8, verbose  =  1)
-          #  de_12h <- ediff[order(ediff$Z, decreasing  =  TRUE), ]
-          #  write.csv(de_12h, file = "de_12h.csv")
+### 12h
+#  group <- factor(colData_DE$h12)
+#  names(group) <- rownames(o.ifm)
+#  ediff <- scde.expression.difference(o.ifm, cd, o.prior, groups  =  group, n.randomizations  =  100, n.cores  =  8, verbose  =  1)
+#  de_12h <- ediff[order(ediff$Z, decreasing  =  TRUE), ]
+#  write.csv(de_12h, file = "de_12h.csv")
             
             
-            ### 24h
-          #  group <- factor(colData_DE$h24)
-          #  names(group) <- rownames(o.ifm)
-          #  ediff <- scde.expression.difference(o.ifm, cd, o.prior, groups  =  group, n.randomizations  =  100, n.cores  =  8, verbose  =  1)
-          #  de_24h <- ediff[order(ediff$Z, decreasing  =  TRUE), ]
-          #  write.csv(de_24h, file = "de_24h.csv")
+### 24h
+#  group <- factor(colData_DE$h24)
+#  names(group) <- rownames(o.ifm)
+#  ediff <- scde.expression.difference(o.ifm, cd, o.prior, groups  =  group, n.randomizations  =  100, n.cores  =  8, verbose  =  1)
+#  de_24h <- ediff[order(ediff$Z, decreasing  =  TRUE), ]
+#  write.csv(de_24h, file = "de_24h.csv")
             
             
-            ### 7d
-            #group <- factor(colData_DE$d7)
-            #names(group) <- rownames(o.ifm)
-            #ediff <- scde.expression.difference(o.ifm, cd, o.prior, groups  =  group, n.randomizations  =  100, n.cores  =  8, verbose  =  1)
-            #de_d7 <- ediff[order(ediff$Z, decreasing  =  TRUE), ]
-            #write.csv(de_d7, file = "de_d7.csv")
+ ### 7d
+ #group <- factor(colData_DE$d7)
+ #names(group) <- rownames(o.ifm)
+ #ediff <- scde.expression.difference(o.ifm, cd, o.prior, groups  =  group, n.randomizations  =  100, n.cores  =  8, verbose  =  1)
+ #de_d7 <- ediff[order(ediff$Z, decreasing  =  TRUE), ]
+ #write.csv(de_d7, file = "de_d7.csv")
             
             
-          #  de_ht_0h <- de_0h[de_0h$cZ > 1.65, ]
-          #  de_ht_4h <- de_4h[de_4h$cZ > 1.65, ]
-          #  de_ht_12h <- de_12h[de_12h$cZ > 1.65, ]
-          #  de_ht_24h <- de_24h[de_24h$cZ > 1.65, ]
-            #de_ht_d7 <- de_d7[de_d7$cZ > 1.96, ]
+ #  de_ht_0h <- de_0h[de_0h$cZ > 1.65, ]
+ #  de_ht_4h <- de_4h[de_4h$cZ > 1.65, ]
+ #  de_ht_12h <- de_12h[de_12h$cZ > 1.65, ]
+ #  de_ht_24h <- de_24h[de_24h$cZ > 1.65, ]
+ #de_ht_d7 <- de_d7[de_d7$cZ > 1.96, ]
             
-          #  de_sig <- rbind(de_ht_0h, de_ht_4h, de_ht_12h, de_ht_24h)
-          #  de_sig <- rownames(de_sig)
-          #  de_sig <- unique(de_sig)
-            
-            
+ #  de_sig <- rbind(de_ht_0h, de_ht_4h, de_ht_12h, de_ht_24h)
+ #  de_sig <- rownames(de_sig)
+ #  de_sig <- unique(de_sig)
             
             
-            #de_a <- de[de$cZ > 1.96, ]
-            #de_b <- de[de$cZ < -1.96, ]
-            #de_sig <- rbind(de_a, de_b)
-            #de_sig <- rownames(de_sig)
-            
-            ### creating the heatmap
-            h4 <- as.character(colData_DE[colData_DE$time == "4h", ]$col)
-            h0 <- as.character(colData_DE[colData_DE$time == "0h", ]$col)
-            h12 <- as.character(colData_DE[colData_DE$time == "12h", ]$col)
-            h24 <- as.character(colData_DE[colData_DE$time == "24h", ]$col)
-            d7 <- as.character(colData_DE[colData_DE$time == "7d", ]$col)
-            ht_order <- c(h0, h4, h12, h24, d7)
             
             
-          #  norm <- nSingle[de_sig, ht_order]
-          #  scaled <- t(apply(norm, 1, scale))
-          #  colnames(scaled) <- colnames(norm)
-            #group <- factor(colData_DE$time)
-            #ha <- HeatmapAnnotation(df = data.frame(group), col = list(group = c("0h" = "#619cff", "12h" = "#00BA38", "24h" = "#F8766D", "4h" = "#6a3d9a")))
-          #  pdf("./output/heatmap_comparision.pdf", width = 14, height = 7)
-          #  p <- Heatmap(scaled, cluster_columns = FALSE, cluster_rows = FALSE, col = colorRamp2(seq(-2,2,0.1), viridis(41)), row_names_gp = gpar(fontsize = 4), show_column_names = TRUE)
-          #  print(p)
-          #  dev.off()
+ #de_a <- de[de$cZ > 1.96, ]
+ #de_b <- de[de$cZ < -1.96, ]
+ #de_sig <- rbind(de_a, de_b)
+ #de_sig <- rownames(de_sig)
+            
+ ### creating the heatmap
+ h4 <- as.character(colData_DE[colData_DE$time == "4h", ]$col)
+ h0 <- as.character(colData_DE[colData_DE$time == "0h", ]$col)
+ h12 <- as.character(colData_DE[colData_DE$time == "12h", ]$col)
+ h24 <- as.character(colData_DE[colData_DE$time == "24h", ]$col)
+ d7 <- as.character(colData_DE[colData_DE$time == "7d", ]$col)
+ ht_order <- c(h0, h4, h12, h24, d7)
+            
+            
+ #  norm <- nSingle[de_sig, ht_order]
+ #  scaled <- t(apply(norm, 1, scale))
+ #  colnames(scaled) <- colnames(norm)
+ #group <- factor(colData_DE$time)
+ #ha <- HeatmapAnnotation(df = data.frame(group), col = list(group = c("0h" = "#619cff", "12h" = "#00BA38", "24h" = "#F8766D", "4h" = "#6a3d9a")))
+ #  pdf("./output/heatmap_comparision.pdf", width = 14, height = 7)
+ #  p <- Heatmap(scaled, cluster_columns = FALSE, cluster_rows = FALSE, col = colorRamp2(seq(-2,2,0.1), viridis(41)), row_names_gp = gpar(fontsize = 4), show_column_names = TRUE)
+ #  print(p)
+ #  dev.off()
               
             
             
             
             
-            #norm <- nSingle[hm_gene, ht_order]
-            #  scaled <- t(apply(norm, 1, scale))
-            #  colnames(scaled) <- colnames(norm)
-            #group <- factor(colData_DE$time)
-            #ha <- HeatmapAnnotation(df = data.frame(group), col = list(group = c("0h" = "#619cff", "12h" = "#00BA38", "24h" = "#F8766D", "4h" = "#6a3d9a")))
-            #  pdf("./output/heatmap_comparision.pdf", width = 14, height = 7)
-            #  p <- Heatmap(scaled, cluster_columns = FALSE, cluster_rows = TRUE, col = colorRamp2(seq(-2,2,0.1), viridis(41)), row_names_gp = gpar(fontsize = 4), show_column_names = TRUE)
-            #  print(p)
-            #  dev.off()
+ #norm <- nSingle[hm_gene, ht_order]
+ #  scaled <- t(apply(norm, 1, scale))
+ #  colnames(scaled) <- colnames(norm)
+ #group <- factor(colData_DE$time)
+ #ha <- HeatmapAnnotation(df = data.frame(group), col = list(group = c("0h" = "#619cff", "12h" = "#00BA38", "24h" = "#F8766D", "4h" = "#6a3d9a")))
+ #  pdf("./output/heatmap_comparision.pdf", width = 14, height = 7)
+ #  p <- Heatmap(scaled, cluster_columns = FALSE, cluster_rows = TRUE, col = colorRamp2(seq(-2,2,0.1), viridis(41)), row_names_gp = gpar(fontsize = 4), show_column_names = TRUE)
+ #  print(p)
+ #  dev.off()
             
-            ##################################################################
-            ######################## Performing DEseq2 #######################
-            ##################################################################
-            condition <- colData_DE
+ ##################################################################
+ ######################## Performing DEseq2 #######################
+ ##################################################################
+ condition <- colData_DE
           
-            ##h0
-            dds <- DESeqDataSetFromMatrix(countData = single_table,
-                                          colData = condition,
-                                          design= ~h0)
-            dds <- DESeq(dds)
-            resultsNames(dds)
-            res_h0 <- results(dds, name = "h0_rest_vs_aim")
-            res_h0 <- data.frame(res_h0)
-            res_h0 <- res_h0[complete.cases(res_h0),]
-            write.csv(res_h0, file = "res_h0.csv")
+ ##h0
+ dds <- DESeqDataSetFromMatrix(countData = single_table,
+      colData = condition,
+      design= ~h0)
+ dds <- DESeq(dds)
+ resultsNames(dds)
+ res_h0 <- results(dds, name = "h0_rest_vs_aim")
+ res_h0 <- data.frame(res_h0)
+ res_h0 <- res_h0[complete.cases(res_h0),]
+ write.csv(res_h0, file = "res_h0.csv")
             
             
-            #### finding genes that are low at the beginning but low at the end
-            ### creating the violinplot
-            vln_norm <- nSingle[,rownames(colData_DE)]
-            de_gene <- res_h0[res_h0$padj < 0.01,]
-            pos <- de_gene[de_gene$log2FoldChange > 2,]
+ #### finding genes that are low at the beginning but low at the end
+ ### creating the violinplot
+ vln_norm <- nSingle[,rownames(colData_DE)]
+ de_gene <- res_h0[res_h0$padj < 0.01,]
+ pos <- de_gene[de_gene$log2FoldChange > 2,]
             
             
-            ## violinplot
-            colData_DE$gene <- log10(vln_norm["Tb927.1.290",] + 1)
-            ggplot(colData_DE, aes(x = time, y = gene, color = time)) +
-              geom_violin() +
-              geom_jitter() +
-              theme_classic()
+ ## violinplot
+ colData_DE$gene <- log10(vln_norm["Tb927.1.290",] + 1)
+ ggplot(colData_DE, aes(x = time, y = gene, color = time)) +
+       geom_violin() +
+       geom_jitter() +
+       theme_classic()
             
             
             
-            ##h4
-            dds <- DESeqDataSetFromMatrix(countData = single_table,
-                                          colData = condition,
-                                          design= ~h4)
-            dds <- DESeq(dds)
-            resultsNames(dds)
-            res_h4 <- results(dds, name = "h4_rest_vs_aim")
-            res_h4 <- data.frame(res_h4)
-            res_h4 <- res_h4[complete.cases(res_h4),]
+##h4
+dds <- DESeqDataSetFromMatrix(countData = single_table,
+       colData = condition,
+       design= ~h4)
+dds <- DESeq(dds)
+resultsNames(dds)
+res_h4 <- results(dds, name = "h4_rest_vs_aim")
+res_h4 <- data.frame(res_h4)
+res_h4 <- res_h4[complete.cases(res_h4),]
             
-            write.csv(res_h4, file = "res_h4.csv")
-            ##h12
-            dds <- DESeqDataSetFromMatrix(countData = single_table,
-                                          colData = condition,
-                                          design= ~h12)
-            dds <- DESeq(dds)
-            resultsNames(dds)
-            res_h12 <- results(dds, name = "h12_rest_vs_aim")
-            res_h12 <- data.frame(res_h12)
-            res_h12 <- res_h12[complete.cases(res_h12),]
+write.csv(res_h4, file = "res_h4.csv")
+##h12
+dds <- DESeqDataSetFromMatrix(countData = single_table,
+       colData = condition,
+       design= ~h12)
+dds <- DESeq(dds)
+resultsNames(dds)
+res_h12 <- results(dds, name = "h12_rest_vs_aim")
+res_h12 <- data.frame(res_h12)
+res_h12 <- res_h12[complete.cases(res_h12),]
             
           
-            write.csv(res_h12, file = "res_h12.csv")
-            ##h24
-            dds <- DESeqDataSetFromMatrix(countData = single_table,
-                                          colData = condition,
-                                          design= ~h24)
-            dds <- DESeq(dds)
-            resultsNames(dds)
-            res_h24 <- results(dds, name = "h24_rest_vs_aim")
-            res_h24 <- data.frame(res_h24)
-            res_h24 <- res_h24[complete.cases(res_h24),]
+write.csv(res_h12, file = "res_h12.csv")
+##h24
+dds <- DESeqDataSetFromMatrix(countData = single_table,
+       colData = condition,
+       design= ~h24)
+dds <- DESeq(dds)
+resultsNames(dds)
+res_h24 <- results(dds, name = "h24_rest_vs_aim")
+res_h24 <- data.frame(res_h24)
+res_h24 <- res_h24[complete.cases(res_h24),]
               
-            write.csv(res_h24, file = "res_h24.csv")
+write.csv(res_h24, file = "res_h24.csv")
             
             
-            ##d7
-            dds <- DESeqDataSetFromMatrix(countData = single_table,
-                                          colData = condition,
-                                          design= ~d7)
-            dds <- DESeq(dds)
-            resultsNames(dds)
-            res_d7 <- results(dds, name = "d7_rest_vs_aim")
-            res_d7 <- data.frame(res_d7)
-            res_d7 <- res_d7[complete.cases(res_d7),]
+##d7
+dds <- DESeqDataSetFromMatrix(countData = single_table,
+       colData = condition,
+       design= ~d7)
+dds <- DESeq(dds)
+resultsNames(dds)
+res_d7 <- results(dds, name = "d7_rest_vs_aim")
+res_d7 <- data.frame(res_d7)
+res_d7 <- res_d7[complete.cases(res_d7),]
+           
+write.csv(res_d7, file = "res_d7.csv") 
             
-            write.csv(res_d7, file = "res_d7.csv") 
             
             
+res_h0_hm <- res_h0[res_h0$padj < 0.01,]
+res_h0_hm <- res_h0_hm[res_h0_hm$log2FoldChange < 2 | res_h0_hm$log2FoldChange > 2,]
+      
+res_h4_hm <- res_h4[res_h4$padj < 0.01,]
+res_h4_hm <- res_h4_hm[res_h4_hm$log2FoldChange < 2 | res_h4_hm$log2FoldChange > 2,] 
             
-            res_h0_hm <- res_h0[res_h0$padj < 0.01,]
-            res_h0_hm <- res_h0_hm[res_h0_hm$log2FoldChange < 2 | res_h0_hm$log2FoldChange > 2,]
+res_h12_hm <- res_h12[res_h12$padj < 0.01,]
+res_h12_hm <- res_h12_hm[res_h12_hm$log2FoldChange < 2 | res_h12_hm$log2FoldChange > 2,] 
             
-            res_h4_hm <- res_h4[res_h4$padj < 0.01,]
-            res_h4_hm <- res_h4_hm[res_h4_hm$log2FoldChange < 2 | res_h4_hm$log2FoldChange > 2,] 
+res_h24_hm <- res_h24[res_h24$padj < 0.01,]
+res_h24_hm <- res_h24_hm[res_h24_hm$log2FoldChange < 2 | res_h24_hm$log2FoldChange > 2,]
             
-            res_h12_hm <- res_h12[res_h12$padj < 0.01,]
-            res_h12_hm <- res_h12_hm[res_h12_hm$log2FoldChange < 2 | res_h12_hm$log2FoldChange > 2,] 
-            
-            res_h24_hm <- res_h24[res_h24$padj < 0.01,]
-            res_h24_hm <- res_h24_hm[res_h24_hm$log2FoldChange < 2 | res_h24_hm$log2FoldChange > 2,]
-            
-            res_d7_hm <- res_d7[res_d7$padj < 0.01,]
-            res_d7_hm <- res_d7_hm[res_d7_hm$log2FoldChange < 2 | res_d7_hm$log2FoldChange > 2,]
+res_d7_hm <- res_d7[res_d7$padj < 0.01,]
+res_d7_hm <- res_d7_hm[res_d7_hm$log2FoldChange < 2 | res_d7_hm$log2FoldChange > 2,]
         
-        gene_selected <- read.csv(file = "All RBPs for Heatmap.txt", header = FALSE)
-        hm_gene <- as.character(gene_selected$V1)
+gene_selected <- read.csv(file = "All RBPs for Heatmap.txt", header = FALSE)
+hm_gene <- as.character(gene_selected$V1)
         
-        #hm_gene <- unique(c(rownames(res_h0_hm), rownames(res_h4_hm), rownames(res_h12_hm), rownames(res_h24_hm), rownames(res_d7_hm)))
-        norm <- nSingle[hm_gene, ht_order]
-        scaled <- t(apply(norm, 1, scale))
-        colnames(scaled) <- colnames(norm)
-        #group <- factor(colData_DE$time)
-        #ha <- HeatmapAnnotation(df = data.frame(group), col = list(group = c("0h" = "#619cff", "12h" = "#00BA38", "24h" = "#F8766D", "4h" = "#6a3d9a")))
-        pdf("./output/heatmap_comparision5.pdf", width = 14, height = 10)
-        p <- Heatmap(scaled, cluster_columns = TRUE, cluster_rows = TRUE, col = colorRamp2(seq(-2,2,0.1), viridis(41)), row_names_gp = gpar(fontsize = 2), show_column_names = TRUE)
-        print(p)
-        dev.off()
+#hm_gene <- unique(c(rownames(res_h0_hm), rownames(res_h4_hm), rownames(res_h12_hm), rownames(res_h24_hm), rownames(res_d7_hm)))
+norm <- nSingle[hm_gene, ht_order]
+scaled <- t(apply(norm, 1, scale))
+colnames(scaled) <- colnames(norm)
+group <- factor(colData_DE$time)
+ha <- HeatmapAnnotation(df = data.frame(group), col = list(group = c("0h" = "#619cff", "12h" = "#00BA38", "24h" = "#F8766D", "4h" = "#6a3d9a")))
+pdf("./output/heatmap_comparision5.pdf", width = 14, height = 10)
+p <- Heatmap(scaled, cluster_columns = TRUE, cluster_rows = TRUE, col = colorRamp2(seq(-2,2,0.1), viridis(41)), row_names_gp = gpar(fontsize = 2), show_column_names = TRUE)
+print(p)
+dev.off()
   
   
   
