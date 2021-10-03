@@ -10,6 +10,12 @@ library(Seurat)
 library(readxl)
 library(ggpubr)
 library(factoextra)
+library(readxl)
+library( DESeq2 )
+library( genefilter )
+library( statmod )
+library(ggplot2)
+library(Rtsne) 
                   
 setwd("/home/hiri/Desktop/PhD_Projects/2020-09-21-Christian")
 dir.create("output")
@@ -101,232 +107,111 @@ p2 <- ggplot(data = colData50, aes(x = time, y = lib.size, color = time)) +
 Fig1c <- grid.arrange(p1, p2, ncol=1)
 ggsave("./output/gene_lib_50.png", Fig1c, width = 6, height = 5)
               
-              ## sFig2b
-              ggplot(data = colData50, aes(x = lib.size, y=n.gene, color = time)) +
-                geom_jitter() +
-                theme_classic() +
-                theme() +
-                ylab("Number of detected genes") +
-                xlab("Library Size") 
+ggplot(data = colData50, aes(x = lib.size, y=n.gene, color = time)) +
+    geom_jitter() +
+    theme_classic() +
+    theme() +
+    ylab("Number of detected genes") +
+    xlab("Library Size") 
               
-              ggsave("./output/gene_lib_cor_50.png", width = 5, height = 5) 
+ggsave("./output/gene_lib_cor_50.png", width = 5, height = 5) 
               
-              #############################################################
-              ####################### Control on ERCCs#####################
-              #############################################################
-              ## Importing the length
-              #length <- read.table(file="./temp/0h_1_A3_1Aligned.out.txt",header=TRUE, row.names = 1, sep = "\t", stringsAsFactors = FALSE) 
-              #length <- length[,5]
-              ############################
-              ## single cell analysis
-              #unique_table1 <- unique_table[,colData1$col]
-              #RPK <- unique_table1 / length
-              #sf <- colSums(RPK) / 1000000
-              #TPM <- t(t(RPK) / sf) 
-                        
-              ## Calculating the number of ERCC molecules in each sample
-              #ERCC_con <- read.csv("ERCC_con.txt", header=TRUE, row.names = 1, sep = "\t") [,c(1,3)]
-              #colnames(ERCC_con) <- c("ERCC", "Concentration")
-              #molecules <- ((ERCC_con$Concentration * 6.0221409e+23 * 1e-18) / 20000000)
-              #rownames(ERCC_con) <- ERCC_con$ERCC
-              #ERCC_con <- cbind(ERCC_con, molecules)
-              
-              
-              ## Seperating ERCC genes
-              #er <- grep("ERCC", rownames(TPM))
-              #ERCC <- TPM[er, ]
-              #ERCC_average <- rowMeans(ERCC)
-              # ordering ERCC_con
-              #ERCC_con <- ERCC_con[rownames(ERCC),]
-              
-              
-              ## Producing the dotplot for the average case
-              #main_plot <- as.data.frame(cbind(ERCC_con$molecules, ERCC_average))
-              #colnames(main_plot) <- c("molecule", "average")
-              #main_plot <- main_plot + 1
-              #cor <- cor(main_plot$molecule, main_plot$average, method = c("spearman"))
+
+
             
-            #ggplot(main_plot, aes(x=molecule, y=average)) +
-            #    geom_point() +
-            #    geom_smooth(method=lm, se=FALSE, color="darkred") +
-            #    scale_x_continuous(trans='log2') +
-            #    scale_y_continuous(trans='log2') +
-            #    ggtitle(paste("correlation =", round(cor, digits = 2))) +
-            #    ylab("log2 TPM") +
-            #    xlab("log2 transcript molecules") +
-                #geom_vline(xintercept= 2, linetype="dashed") +
-                #geom_hline(yintercept= 2, linetype="dashed") +
-            #  theme_classic()
+########################################
+################# Single ###############
+########################################
+
+colData_filt <- colData1[colData1$n.gene > 200 , ]
+colData_filt <- colData_filt[colData_filt$n.gene < 1000 , ]
+colData_filt <- colData_filt[colData_filt$lib.size > 200000 , ]
+colData_filt <- colData_filt[colData_filt$lib.size < 2000000 , ]
+colData_filt <- colData_filt[-c(7),]
             
-            #ggsave("./output/ERCC_1.png", width = 5, height = 5)
+colData_filt$col <- as.character(colData_filt$col)
+colData_filt$time <- as.character(colData_filt$time)
+colData_filt$nCell <- as.character(colData_filt$nCell)
+rownames(colData_filt) <- colData_filt$col
+outlier <- c("0h_1_B5_1", "0h_1_G2", "0h_1_C5_1")
+colData_filt <- colData_filt[!rownames(colData_filt) %in% outlier, ]
             
-            
-            ############################
-            ## single cell analysis
-            #unique_table50 <- unique_table[,colData50$col]
-            #RPK <- unique_table50 / length
-            #sf <- colSums(RPK) / 1000000
-            #TPM <- t(t(RPK) / sf) #
-            
-            ## Calculating the number of ERCC molecules in each sample
-            #ERCC_con <- read.csv("ERCC_con.txt", header=TRUE, row.names = 1, sep = "\t") [,c(1,3)]
-            #colnames(ERCC_con) <- c("ERCC", "Concentration")
-            #molecules <- ((ERCC_con$Concentration * 6.0221409e+23 * 1e-18) / 20000000)
-            #rownames(ERCC_con) <- ERCC_con$ERCC
-            #ERCC_con <- cbind(ERCC_con, molecules)
-            
-            
-            ## Seperating ERCC genes
-            #er <- grep("ERCC", rownames(TPM))
-            #ERCC <- TPM[er, ]
-            #ERCC_average <- rowMeans(ERCC)
-            # ordering ERCC_con
-            #ERCC_con <- ERCC_con[rownames(ERCC),]
-            
-            
-            ## Producing the dotplot for the average case
-            #main_plot <- as.data.frame(cbind(ERCC_con$molecules, ERCC_average))
-            #colnames(main_plot) <- c("molecule", "average")
-            #main_plot <- main_plot + 1
-            #cor <- cor(main_plot$molecule, main_plot$average, method = c("spearman"))
-            
-            #ggplot(main_plot, aes(x=molecule, y=average)) +
-            #  geom_point() +
-            #  geom_smooth(method=lm, se=FALSE, color="darkred") +
-            #  scale_x_continuous(trans='log2') +
-            #  scale_y_continuous(trans='log2') +
-            #  ggtitle(paste("correlation =", round(cor, digits = 2))) +
-            #  ylab("log2 TPM") +
-            #  xlab("log2 transcript molecules") +
-              #geom_vline(xintercept= 2, linetype="dashed") +
-              #geom_hline(yintercept= 2, linetype="dashed") +
-            #  theme_classic()
-            
-            #ggsave("./output/ERCC_50.png", width = 5, height = 5)
-              ########################################################
-            ########################################################
-            ########################################################
-            library(readxl)
-            library( DESeq2 )
-            library( genefilter )
-            library( statmod )
-            library(ggplot2)
-            library(Rtsne) 
-            
-            ########################################
-            ################# Single ###############
-            ########################################
-            #############################################################
-            #############################################################
-            #############################################################
-            colData_filt <- colData1[colData1$n.gene > 200 , ]
-            colData_filt <- colData_filt[colData_filt$n.gene < 1000 , ]
-            colData_filt <- colData_filt[colData_filt$lib.size > 200000 , ]
-            colData_filt <- colData_filt[colData_filt$lib.size < 2000000 , ]
-            colData_filt <- colData_filt[-c(7),]
-            
-            colData_filt$col <- as.character(colData_filt$col)
-            colData_filt$time <- as.character(colData_filt$time)
-            colData_filt$nCell <- as.character(colData_filt$nCell)
-            rownames(colData_filt) <- colData_filt$col
-            outlier <- c("0h_1_B5_1", "0h_1_G2", "0h_1_C5_1")
-            colData_filt <- colData_filt[!rownames(colData_filt) %in% outlier, ]
-            
-            colData_write <- colData_filt
-            rownames(colData_write) <- colData_write$col
-            outlier <- c("0h_1_B5_1", "0h_1_G2", "0h_1_C5_1")
-            colData_write <- colData_write[!rownames(colData_write) %in% outlier, ]
-            write.csv(colData_write, file = "colData_w.csv")
+colData_write <- colData_filt
+rownames(colData_write) <- colData_write$col
+outlier <- c("0h_1_B5_1", "0h_1_G2", "0h_1_C5_1")
+colData_write <- colData_write[!rownames(colData_write) %in% outlier, ]
+write.csv(colData_write, file = "colData_w.csv")
             
             
             
-            single_table <- unique_table1[c(1:57,157:11807), as.character(colData_filt$col)]
-            pos <- grep("mVAT",rownames(single_table))  
-            pos <- c(pos,11190)
-            single_table <- single_table[-pos, ]
-            single_table <- single_table[rowSums(single_table) > 20, ]
+single_table <- unique_table1[c(1:57,157:11807), as.character(colData_filt$col)]
+pos <- grep("mVAT",rownames(single_table))  
+pos <- c(pos,11190)
+single_table <- single_table[-pos, ]
+single_table <- single_table[rowSums(single_table) > 20, ]
             
                         
-              ### Normalizing data
-              sfSingle <- estimateSizeFactorsForMatrix(single_table)
-              nSingle <- t(t(single_table) / sfSingle)
+### Normalizing data
+sfSingle <- estimateSizeFactorsForMatrix(single_table)
+nSingle <- t(t(single_table) / sfSingle)
             
-              ##########################################################################
-              ## Selecting the top variable genes and log transformation
-              topVarGenesSingle <- head(order(rowVars(nSingle), decreasing = TRUE),1000)
-              nSingle_fin <- log(nSingle[topVarGenesSingle,] + 1)
-              ### Performing PCA (single cell)
-              res.pca <- prcomp(t(nSingle_fin), scale = FALSE)
-              #colData1$time <- factor(colData1$time,levels = c("0h", "4h", "12h", "24h", "7d"))
-              ggplot(data.frame(PC1 = res.pca$x[,"PC1"], PC2 = res.pca$x[,"PC2"], time = factor(colData_filt$time,levels = c("0h", "4h", "12h", "24h", "7d"))), aes(x = PC1, y = PC2, color = time)) +
-                geom_jitter(size = 2) +
-                theme_classic() +
-                theme() +
-                geom_hline(yintercept=0, linetype="dashed") +
-                geom_vline(xintercept=0, linetype="dashed")
+##########################################################################
+## Selecting the top variable genes and log transformation
+topVarGenesSingle <- head(order(rowVars(nSingle), decreasing = TRUE),1000)
+nSingle_fin <- log(nSingle[topVarGenesSingle,] + 1)
+### Performing PCA (single cell)
+res.pca <- prcomp(t(nSingle_fin), scale = FALSE)
+#colData1$time <- factor(colData1$time,levels = c("0h", "4h", "12h", "24h", "7d"))
+ggplot(data.frame(PC1 = res.pca$x[,"PC1"], PC2 = res.pca$x[,"PC2"], time = factor(colData_filt$time,levels = c("0h", "4h", "12h", "24h", "7d"))), aes(x = PC1, y = PC2, color = time)) +
+      geom_jitter(size = 2) +
+      theme_classic() +
+      theme() +
+      geom_hline(yintercept=0, linetype="dashed") +
+      geom_vline(xintercept=0, linetype="dashed")
               
-              ggsave("./output/pca.eps", width = 6.5, height = 5)
-              
-              
-              write.csv(data.frame(PC1 = res.pca$x[,"PC1"], PC2 = res.pca$x[,"PC2"], time = colData_filt$time), file = "coordinate.csv")
+ggsave("./output/pca.eps", width = 6.5, height = 5)
               
               
-              
-              fviz_eig(res.pca, addlabels = TRUE, ylim = c(0, 50))
-              ggsave("./output/scree_plot.png", width = 5, height = 5)
-            #  ggplot(data.frame(PC1 = res.pca$x[,"PC1"], PC2 = res.pca$x[,"PC3"], time = colData_filt$time), aes(x = PC1, y = PC2, color = time)) +
-            #    geom_jitter(size = 2) +
-            #    theme_classic() +
-            #    theme() +
-            #    geom_hline(yintercept=0, linetype="dashed") +
-            #    geom_vline(xintercept=0, linetype="dashed")
-              
-              df <- data.frame(PC1 = res.pca$x[,"PC1"], PC2 = res.pca$x[,"PC2"], time = colData_filt$time)  
-              df <- df[!df$time == "7d",]
-              
-              ggplot(df, aes(x = PC1, y = PC2, color = time)) +
-                geom_jitter(size = 2) +
-                theme_classic() +
-                theme() +
-                geom_hline(yintercept=0, linetype="dashed") +
-                geom_vline(xintercept=0, linetype="dashed")
-              
-              ggsave("./output/pca_7d_removed.png", width = 5, height = 5)
-              
-              write.csv(df, file = "coordinate_d7_removed.csv")
+write.csv(data.frame(PC1 = res.pca$x[,"PC1"], PC2 = res.pca$x[,"PC2"], time = colData_filt$time), file = "coordinate.csv")
               
               
-              ### outliers === 0h_1_B5_1 0h_1_G2 0h_1_C5_1
-              #s <- rownames(df) 
-              outlier <- c("0h_1_B5_1", "0h_1_G2", "0h_1_C5_1")
-              df <- df[!rownames(df) %in% outlier, ]
+              
+fviz_eig(res.pca, addlabels = TRUE, ylim = c(0, 50))
+ggsave("./output/scree_plot.png", width = 5, height = 5)
+
+              
+df <- data.frame(PC1 = res.pca$x[,"PC1"], PC2 = res.pca$x[,"PC2"], time = colData_filt$time)  
+df <- df[!df$time == "7d",]
+              
+ggplot(df, aes(x = PC1, y = PC2, color = time)) +
+    geom_jitter(size = 2) +
+    theme_classic() +
+    theme() +
+    geom_hline(yintercept=0, linetype="dashed") +
+    geom_vline(xintercept=0, linetype="dashed")
+              
+ggsave("./output/pca_7d_removed.png", width = 5, height = 5)
+              
+write.csv(df, file = "coordinate_d7_removed.csv")
               
               
-              ggplot(df, aes(x = PC1, y = PC2, color = time)) +
-                geom_jitter(size = 2) +
-                theme_classic() +
-                theme() +
-                geom_hline(yintercept=0, linetype="dashed") +
-                geom_vline(xintercept=0, linetype="dashed")
-              
-              ggsave("./output/pca_7d_outlier_removed.png", width = 5, height = 5)
-              write.csv(df, file = "coordinate_d7_outlier_removed.csv")
+### outliers === 0h_1_B5_1 0h_1_G2 0h_1_C5_1
+#s <- rownames(df) 
+outlier <- c("0h_1_B5_1", "0h_1_G2", "0h_1_C5_1")
+df <- df[!rownames(df) %in% outlier, ]
               
               
-                #write.csv(nSingle, file = "single_normalized.csv")
-              #write.csv(single_table, file = "single_raw.csv")
-              #write.csv(unique_table, file = "full_count.csv")
-              #write.csv(df, file = "coordinate.csv")
+ggplot(df, aes(x = PC1, y = PC2, color = time)) +
+    geom_jitter(size = 2) +
+    theme_classic() +
+    theme() +
+    geom_hline(yintercept=0, linetype="dashed") +
+    geom_vline(xintercept=0, linetype="dashed")
               
-              #norm <- read.csv("single_normalized.csv", row.names = 1)
-              #colnames(norm) <- gsub("X", "", colnames(norm))
-              #coordinate <- read.csv("coordinate.csv", row.names = 1)
-              #Gene <- "Tb07.11L3.90"
-              #val <- norm[Gene,]
-              #val <- as.numeric(val[,rownames(coordinate)])
-              #df <- data.frame(coordinate, gene = val)
+ggsave("./output/pca_7d_outlier_removed.png", width = 5, height = 5)
+write.csv(df, file = "coordinate_d7_outlier_removed.csv")
               
-              #df <- data.frame(coordinate, t(as.numeric(norm[Gene,rownames(coordinate)])))
+              
               #############################################################
               #################### DE 7d vs 24h ###########################
               #############################################################
